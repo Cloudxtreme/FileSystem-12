@@ -1,5 +1,5 @@
 
-#define MAXFILENAME 16
+#define MAXFILENAME 20
 
 void mksfs(int fresh);
 int sfs_getnextfilename(char *fname);
@@ -13,31 +13,31 @@ int sfs_remove(char *file);
 
 
 typedef struct super_block {
-	unsigned int magic;
-	unsigned int block_size;
-	unsigned int fs_size;
-	unsigned int inode_table_len;
-	unsigned int root_dir_inode;
+int magic;
+int block_size;
+int fs_size;
+int inode_table_len;
+int root_dir_inode;
 } super_block_t;
 
 
 typedef struct inode { 
-	unsigned int link_cnt;
-	unsigned int id;
-	unsigned int size;
-	unsigned int data_ptrs[12];
-	unsigned int indirect_ptr; 
+	 int link_cnt;
+	 int id;
+		int size;
+	 int data_ptrs[12];
+	 int indirect_ptr; 
 } inode_t;
 
 
 typedef struct dir_entry { 
-	char* name;
-	unsigned int inode_idx;
+	char name[MAXFILENAME+1];
+	int inode_idx;
 } dir_entry_t;
 
 
 typedef struct fd_table { 
-	unsigned int inode_idx;
-	unsigned int rd_write_ptr;
+	int inode_idx;
+	int rd_write_ptr;
 } fd_table_t;
 

@@ -65,7 +65,6 @@ void init_root_dir()
 	for (int i = 0; i<MAX_INODES; i++)
 	{
 		root_dir[i].inode_idx = -1;
-		root_dir[i].name = ""; 
 	}
 }
 
@@ -88,7 +87,7 @@ void zero_everything()
         bzero(&fd_table[0], sizeof(fd_table_t)*MAX_FILES);
         bzero(&inode_table[0], sizeof(inode_t)*MAX_INODES);
         bzero(&root_dir, sizeof(dir_entry_t));
-        bzero(&free_blocks[0], sizeof(unsigned int)*MAX_BLOCKS);
+        bzero(&free_blocks[0], sizeof(int)*MAX_BLOCKS);
 }
 
 void mksfs(int fresh) {
@@ -170,6 +169,8 @@ int sfs_getfilesize(const char* path) {
 
 int create_file(char *name) 
 {
+	printf("Creating file %s\n", name);
+	
 	int index; 
 	for (int i =0; i<MAX_INODES; i++)
 	{
@@ -189,7 +190,7 @@ int create_file(char *name)
     		break; 
     	}
     }
-    root_dir[index].name = name; 
+    strncpy(root_dir[index].name, name, MAXFILENAME); 
     root_dir[index].inode_idx = index; 
     write_root_dir();
  	return index; 
@@ -199,8 +200,10 @@ int sfs_fopen(char *name) {
 
 	for (int i = 0; i<MAX_FILES; i++)
 	{
-		if (fd_table[i].inode_idx > -1 )
+		if (fd_table[i].inode_idx != -1 )
 		{
+			printf("Name stored in root directory %s \n", root_dir[fd_table[i].inode_idx].name);
+			printf("Name passed in %s\n", name);
 			if (strcmp(root_dir[fd_table[i].inode_idx].name, name) == 0)
 			{
 				printf("File %s is already open\n", name);
@@ -230,16 +233,16 @@ int sfs_fopen(char *name) {
     int fd_ind; 
     for (int i = 0; i<MAX_FILES; i++)
     {
-    	printf("i\n");
     	if (fd_table[i].inode_idx == -1)
     	{
     		fd_ind = i; 
+    		break;
     	}   
     }
 	//set the fd table
 	fd_table[fd_ind].inode_idx = index; 
     fd_table[fd_ind].rd_write_ptr = 0;
-    printf("update fd table\n");
+    printf("Updated fd table at index %d to %d\n", fd_ind, index);
 	return fd_ind;
 }
 
@@ -269,7 +272,7 @@ int get_next_inode_pointer_block(inode_t crt_inode,  int file_block)
 		//get the indirect pointer block 
 		read_blocks(crt_inode.indirect_ptr, 1, indirect_buffer); 
 		int i = file_block - 12; 
-		disk_block = indirect_buffer[i * sizeof(unsigned int)]; 
+		disk_block = indirect_buffer[i * sizeof(int)]; 
 	}
 	free(indirect_buffer);
 	return disk_block; 
@@ -279,8 +282,8 @@ int sfs_fread(int fileID, char *buf, int length){
 
 	//Implement sfs_fread here	
         int r_len = length;
-        unsigned int inode_idx = fd_table[fileID].inode_idx;
-        unsigned int crt_pos = fd_table[fileID].rd_write_ptr;
+        int inode_idx = fd_table[fileID].inode_idx;
+        int crt_pos = fd_table[fileID].rd_write_ptr;
         char buffer[BLOCK_SIZE];
         inode_t crt_inode = inode_table[inode_idx];
         int block_idx; 
@@ -378,18 +381,18 @@ int allocate_next_block(inode_t crt_inode)
 			inode_block = get_next_free_block();
 			free_blocks[inode_block] = 1;
 			crt_inode.indirect_ptr = inode_block;
-			memcpy(indirect_buffer, &next_block, sizeof(unsigned int)); 
+			memcpy(indirect_buffer, &next_block, sizeof(int)); 
 		}
 		else
 		{
 			inode_block = crt_inode.indirect_ptr;
 			read_blocks(inode_block, 1, indirect_buffer);
-			for (int i = 0; i < BLOCK_SIZE; i+= sizeof(unsigned int))
+			for (int i = 0; i < BLOCK_SIZE; i+= sizeof(int))
 			{
 				if(indirect_buffer[i] == 0)
 				{
 					indirect_buffer += i; 
-					memcpy(indirect_buffer, &next_block, sizeof(unsigned int)); 
+					memcpy(indirect_buffer, &next_block, sizeof(int)); 
 				}
 			} 
 		}
@@ -513,8 +516,7 @@ void clear_dir_entry(int index)
 	{
 		if (root_dir[i].inode_idx== index)
 		{
-			root_dir[i].inode_idx = -1;
-			root_dir[i].name = ""; 
+			root_dir[i].inode_idx = -1; 
 		}
 	}
 }
